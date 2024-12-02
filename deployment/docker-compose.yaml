@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Головной офис
+  main_office:
+    image: postgres:13
+    container_name: main_office_db
+    environment:
+      POSTGRES_USER: main_office_user
+      POSTGRES_PASSWORD: main_office_password
+      POSTGRES_DB: main_office_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/main_office:/var/lib/postgresql/data
+    networks:
+      - db_network
+
+  # Филиал 1
+  branch_1:
+    image: postgres:13
+    container_name: branch_1_db
+    environment:
+      POSTGRES_USER: branch_1_user
+      POSTGRES_PASSWORD: branch_1_password
+      POSTGRES_DB: branch_1_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./data/branch_1:/var/lib/postgresql/data
+    networks:
+      - db_network
+    depends_on:
+      - main_office
+
+  # Филиал 2
+  branch_2:
+    image: postgres:13
+    container_name: branch_2_db
+    environment:
+      POSTGRES_USER: branch_2_user
+      POSTGRES_PASSWORD: branch_2_password
+      POSTGRES_DB: branch_2_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./data/branch_2:/var/lib/postgresql/data
+    networks:
+      - db_network
+    depends_on:
+      - main_office
+
+  # Филиал 3
+  branch_3:
+    image: postgres:13
+    container_name: branch_3_db
+    environment:
+      POSTGRES_USER: branch_3_user
+      POSTGRES_PASSWORD: branch_3_password
+      POSTGRES_DB: branch_3_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./data/branch_3:/var/lib/postgresql/data
+    networks:
+      - db_network
+    depends_on:
+      - main_office
+
+networks:
+  db_network:
+    driver: bridge
