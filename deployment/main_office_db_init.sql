@@ -1,3 +1,33 @@
+-- Создание таблицы "Должность"
+CREATE TABLE position (
+    position_id SERIAL PRIMARY KEY,
+    title VARCHAR(50) NOT NULL,
+    description TEXT,
+    medical_services BOOLEAN
+);
+
+-- Создание таблицы "Клиника"
+CREATE TABLE clinic (
+    clinic_id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    address VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(50) NOT NULL
+);
+
+-- Создание таблицы "Сотрудник"
+CREATE TABLE employee (
+    employee_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(50) NOT NULL,
+    position_id INT,
+    clinic_id INT,
+    FOREIGN KEY (position_id) REFERENCES position (position_id),
+    FOREIGN KEY (clinic_id) REFERENCES clinic (clinic_id)
+);
+
 -- Создание таблицы "ВладелецЖивотное"
 CREATE TABLE owner_animal (
     owner_id SERIAL PRIMARY KEY,
@@ -23,44 +53,6 @@ CREATE TABLE animal (
     FOREIGN KEY (owner_id) REFERENCES owner_animal (owner_id)
 );
 
--- Создание таблицы "Сотрудник"
-CREATE TABLE employee (
-    employee_id SERIAL PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    phone VARCHAR(20) NOT NULL,
-    email VARCHAR(50) NOT NULL,
-    position_id INT,
-    clinic_id INT,
-    FOREIGN KEY (position_id) REFERENCES position (position_id),
-    FOREIGN KEY (clinic_id) REFERENCES clinic (clinic_id)
-);
-
--- Создание таблицы "Должность"
-CREATE TABLE position (
-    position_id SERIAL PRIMARY KEY,
-    title VARCHAR(50) NOT NULL,
-    description TEXT,
-    medical_services BOOLEAN
-);
-
--- Создание таблицы "Клиника"
-CREATE TABLE clinic (
-    clinic_id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
-    address VARCHAR(100) NOT NULL,
-    phone VARCHAR(20) NOT NULL,
-    email VARCHAR(50) NOT NULL
-);
-
--- Создание таблицы "Услуга"
-CREATE TABLE service (
-    service_id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
-    description TEXT,
-    price DECIMAL(8, 2) NOT NULL
-);
-
 -- Создание таблицы "Прием"
 CREATE TABLE appointment (
     appointment_id SERIAL PRIMARY KEY,
@@ -78,6 +70,14 @@ CREATE TABLE appointment (
     FOREIGN KEY (employee_id) REFERENCES employee (employee_id)
 );
 
+-- Создание таблицы "Услуги"
+CREATE TABLE service (
+    service_id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    description TEXT,
+    price DECIMAL(8, 2) NOT NULL
+);
+
 -- Создание таблицы "УслугиПриема"
 CREATE TABLE appointment_services (
     appointment_id INT NOT NULL,
@@ -88,6 +88,14 @@ CREATE TABLE appointment_services (
     FOREIGN KEY (service_id) REFERENCES service (service_id)
 );
 
+-- Создание таблицы "Заболевания"
+CREATE TABLE disease (
+    disease_id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    description TEXT,
+    treatment TEXT
+);
+
 -- Создание таблицы "ЗаболеванияПриема"
 CREATE TABLE appointment_diseases (
     appointment_id INT NOT NULL,
@@ -95,14 +103,6 @@ CREATE TABLE appointment_diseases (
     PRIMARY KEY (appointment_id, disease_id),
     FOREIGN KEY (appointment_id) REFERENCES appointment (appointment_id),
     FOREIGN KEY (disease_id) REFERENCES disease (disease_id)
-);
-
--- Создание таблицы "Заболевание"
-CREATE TABLE disease (
-    disease_id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
-    description TEXT,
-    treatment TEXT
 );
 
 -- Создание таблицы "Препарат"
@@ -133,3 +133,4 @@ CREATE TABLE prescription_medications (
     FOREIGN KEY (prescription_id) REFERENCES prescription (prescription_id),
     FOREIGN KEY (medication_id) REFERENCES medication (medication_id)
 );
+
