@@ -13,11 +13,8 @@ Project for HSE's subject "Distributed databases"
 ```sql
 -- Уровень WAL для логической репликации
 ALTER SYSTEM SET wal_level = 'logical';
--- Максимальное количество слотов репликации
-ALTER SYSTEM SET max_replication_slots = 5;
--- Максимальное количество рабочих процессов репликации
-ALTER SYSTEM SET max_wal_senders = 5;
--- Таймаут для подтверждения репликации
+ALTER SYSTEM SET max_replication_slots = 10;
+ALTER SYSTEM SET max_wal_senders = 10;
 ALTER SYSTEM SET wal_sender_timeout = '60s';
 
 
@@ -58,17 +55,31 @@ CREATE OR REPLACE FUNCTION replicate_owner_animal_to_branches()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Определяем источник данных
-    IF NEW.source_branch IS NOT NULL THEN
-        -- Распространяем изменения на филиалы, кроме источника
-        IF NEW.source_branch != 1 THEN
-            PERFORM dblink_exec('dbname=branch_1_db', 'INSERT INTO owner_animal (...) VALUES (...)');
-        END IF;
-        IF NEW.source_branch != 2 THEN
-            PERFORM dblink_exec('dbname=branch_2_db', 'INSERT INTO owner_animal (...) VALUES (...)');
-        END IF;
-        IF NEW.source_branch != 3 THEN
-            PERFORM dblink_exec('dbname=branch_3_db', 'INSERT INTO owner_animal (...) VALUES (...)');
-        END IF;
+    IF NEW.source_branch IS NULL THEN
+        -- Если source_branch не указан (локальная вставка), отправляем изменения на все филиалы
+        PERFORM dblink_exec('dbname=branch_1_db', 
+            'INSERT INTO owner_animal (first_name, last_name, address, phone, email, source_branch)
+             VALUES (' || quote_literal(NEW.first_name) || ', '
+                          || quote_literal(NEW.last_name) || ', '
+                          || quote_literal(NEW.address) || ', '
+                          || quote_literal(NEW.phone) || ', '
+                          || quote_literal(NEW.email) || ', 0)');
+
+        PERFORM dblink_exec('dbname=branch_2_db', 
+            'INSERT INTO owner_animal (first_name, last_name, address, phone, email, source_branch)
+             VALUES (' || quote_literal(NEW.first_name) || ', '
+                          || quote_literal(NEW.last_name) || ', '
+                          || quote_literal(NEW.address) || ', '
+                          || quote_literal(NEW.phone) || ', '
+                          || quote_literal(NEW.email) || ', 0)');
+
+        PERFORM dblink_exec('dbname=branch_3_db', 
+            'INSERT INTO owner_animal (first_name, last_name, address, phone, email, source_branch)
+             VALUES (' || quote_literal(NEW.first_name) || ', '
+                          || quote_literal(NEW.last_name) || ', '
+                          || quote_literal(NEW.address) || ', '
+                          || quote_literal(NEW.phone) || ', '
+                          || quote_literal(NEW.email) || ', 0)');
     END IF;
     RETURN NEW;
 END;
@@ -82,18 +93,44 @@ FOR EACH ROW EXECUTE FUNCTION replicate_owner_animal_to_branches();
 CREATE OR REPLACE FUNCTION replicate_animal_to_branches()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Проверяем, что запись привязана к существующему owner_id
-    IF NEW.owner_id IS NOT NULL THEN
-        -- Распространяем изменения на филиалы, кроме источника
-        IF NEW.source_branch != 1 THEN
-            PERFORM dblink_exec('dbname=branch_1_db', 'INSERT INTO animal (...) VALUES (...)');
-        END IF;
-        IF NEW.source_branch != 2 THEN
-            PERFORM dblink_exec('dbname=branch_2_db', 'INSERT INTO animal (...) VALUES (...)');
-        END IF;
-        IF NEW.source_branch != 3 THEN
-            PERFORM dblink_exec('dbname=branch_3_db', 'INSERT INTO animal (...) VALUES (...)');
-        END IF;
+    -- Определяем источник данных
+    IF NEW.source_branch IS NULL THEN
+        -- Если source_branch не указан (локальная вставка), отправляем изменения на все филиалы
+        PERFORM dblink_exec('dbname=branch_1_db', 
+            'INSERT INTO animal (name, species, breed, date_of_birth, gender, owner_id, diabetes, chronic_diseases, vaccinations, source_branch)
+             VALUES (' || quote_literal(NEW.name) || ', '
+                          || quote_literal(NEW.species) || ', '
+                          || quote_literal(NEW.breed) || ', '
+                          || quote_literal(NEW.date_of_birth) || ', '
+                          || quote_literal(NEW.gender) || ', '
+                          || NEW.owner_id || ', '
+                          || quote_literal(NEW.diabetes) || ', '
+                          || quote_literal(NEW.chronic_diseases) || ', '
+                          || quote_literal(NEW.vaccinations) || ', 0)');
+
+        PERFORM dblink_exec('dbname=branch_2_db', 
+            'INSERT INTO animal (name, species, breed, date_of_birth, gender, owner_id, diabetes, chronic_diseases, vaccinations, source_branch)
+             VALUES (' || quote_literal(NEW.name) || ', '
+                          || quote_literal(NEW.species) || ', '
+                          || quote_literal(NEW.breed) || ', '
+                          || quote_literal(NEW.date_of_birth) || ', '
+                          || quote_literal(NEW.gender) || ', '
+                          || NEW.owner_id || ', '
+                          || quote_literal(NEW.diabetes) || ', '
+                          || quote_literal(NEW.chronic_diseases) || ', '
+                          || quote_literal(NEW.vaccinations) || ', 0)');
+
+        PERFORM dblink_exec('dbname=branch_3_db', 
+            'INSERT INTO animal (name, species, breed, date_of_birth, gender, owner_id, diabetes, chronic_diseases, vaccinations, source_branch)
+             VALUES (' || quote_literal(NEW.name) || ', '
+                          || quote_literal(NEW.species) || ', '
+                          || quote_literal(NEW.breed) || ', '
+                          || quote_literal(NEW.date_of_birth) || ', '
+                          || quote_literal(NEW.gender) || ', '
+                          || NEW.owner_id || ', '
+                          || quote_literal(NEW.diabetes) || ', '
+                          || quote_literal(NEW.chronic_diseases) || ', '
+                          || quote_literal(NEW.vaccinations) || ', 0)');
     END IF;
     RETURN NEW;
 END;
@@ -131,3 +168,94 @@ CREATE SUBSCRIPTION main_office_to_branch_3
 CONNECTION 'host=main_office_db port=5432 user=main_office_user password=main_office_password dbname=main_office_db'
 PUBLICATION main_office_pub;
 ```
+
+### Репликация с консолидацией + удаленный запрос
+
+Просто добавить к уже существующей публикации таблицу appointment:
+```
+ALTER PUBLICATION branch_X_pub ADD TABLE appointment;
+
+ALTER PUBLICATION main_office_pub ADD TABLE appointment;
+```
+
+И теперь можно использовать удаленный запрос:
+```
+SELECT * FROM dblink('main_office_conn',
+                     'SELECT * FROM appointment WHERE animal_id = 123')
+AS t(appointment_id INTEGER, animal_id INTEGER, employee_id INTEGER, branch_id INTEGER, appointment_date DATE, appointment_time TIME, complaints TEXT, diagnosis TEXT, treatment TEXT, notes TEXT, cost DECIMAL, payment_status VARCHAR);
+```
+
+### РОК один раз в день
+
+#### Вспомогательные команды
+
+Список подписок и публикаций в БД:
+```sql
+SELECT * FROM pg_stat_subscription;
+SELECT * FROM pg_publication;
+```
+
+Добавить source_branch к нужным таблицам:
+```sql
+ALTER TABLE owner_animal ADD COLUMN source_branch INTEGER DEFAULT NULL;
+ALTER TABLE animal ADD COLUMN source_branch INTEGER DEFAULT NULL;
+ALTER TABLE appointment ADD COLUMN branch_id INTEGER NOT NULL;
+```
+
+Перезагрузить подписки после восстановления данных:
+```sql
+--- ГО
+ALTER SUBSCRIPTION branch_1_to_main_office ENABLE;
+ALTER SUBSCRIPTION branch_2_to_main_office ENABLE;
+ALTER SUBSCRIPTION branch_3_to_main_office ENABLE;
+
+--- ГО
+ALTER SUBSCRIPTION branch_1_to_main_office REFRESH PUBLICATION;
+ALTER SUBSCRIPTION branch_2_to_main_office REFRESH PUBLICATION;
+ALTER SUBSCRIPTION branch_3_to_main_office REFRESH PUBLICATION;
+
+--- филиалы
+ALTER SUBSCRIPTION main_office_to_branch_1 REFRESH PUBLICATION;
+ALTER SUBSCRIPTION main_office_to_branch_2 REFRESH PUBLICATION;
+ALTER SUBSCRIPTION main_office_to_branch_3 REFRESH PUBLICATION;
+```
+
+#### Вспомогательные функции
+
+Удалить все триггеры и функции:
+```sql
+-- удаление старого триггер для таблицы owner_animal
+DROP TRIGGER IF EXISTS replicate_owner_animal_to_branches_trigger ON owner_animal;
+
+-- удаление старого триггер для таблицы animal
+DROP TRIGGER IF EXISTS replicate_animal_to_branches_trigger ON animal;
+
+-- удаление старого функции триггеров
+DROP FUNCTION IF EXISTS replicate_owner_animal_to_branches CASCADE;
+DROP FUNCTION IF EXISTS replicate_animal_to_branches CASCADE;
+```
+
+#### Бекап и восстановление
+
+Два sh были созданы для автоматического сохранения и восстановления состояния баз данных:
+```bash
+.
+├── backups         # папка с sql дампами состояний баз данных
+│   ├── branch_1_backup.dump
+│   ├── branch_2_backup.dump
+│   ├── branch_3_backup.dump
+│   └── main_office_backup.dump
+├── branch_db_init.sql          # скрипт для создания таблиц в филиале
+├── data            # папка с примонтированными разеделами docker
+│   ├── branch_1  [error opening dir]
+│   ├── branch_2  [error opening dir]
+│   ├── branch_3  [error opening dir]
+│   └── main_office  [error opening dir]
+├── docker-compose.yaml
+├── drop_all_tables.sql         # скрипт обнуления всех баз данных
+├── main_office_db_init.sql     # скрипт для создания таблиц в головоном офисе
+├── restore_databases.sh        # скрипт восстановления баз данных из дампов
+└── save_databases.sh           # скрипт сохранения дампов баз данных
+```
+
+

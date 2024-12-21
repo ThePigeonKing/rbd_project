@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Головной офис
   main_office:
-    image: postgres:13
+    image: postgres:15
     container_name: main_office_db
     environment:
       POSTGRES_USER: main_office_user
@@ -18,7 +18,7 @@ services:
 
   # Филиал 1
   branch_1:
-    image: postgres:13
+    image: postgres:15
     container_name: branch_1_db
     environment:
       POSTGRES_USER: branch_1_user
@@ -35,7 +35,7 @@ services:
 
   # Филиал 2
   branch_2:
-    image: postgres:13
+    image: postgres:15
     container_name: branch_2_db
     environment:
       POSTGRES_USER: branch_2_user
@@ -52,7 +52,7 @@ services:
 
   # Филиал 3
   branch_3:
-    image: postgres:13
+    image: postgres:15
     container_name: branch_3_db
     environment:
       POSTGRES_USER: branch_3_user
@@ -72,8 +72,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: tpk@mail.ru
+      PGADMIN_DEFAULT_PASSWORD: default
     ports:
       - "5050:80"
     volumes:
